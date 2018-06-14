@@ -38,7 +38,7 @@
     <a href="https://macbrennan90.github.io/category/projects.html" class="category">Projects</a><br />
 
     <a class="author" href="https://macbrennan90.github.io/author/mac-brennan.html">Mac Brennan</a>
-    &mdash; <abbr title="2018-04-25T00:00:00-05:00">Wed 25 April 2018</abbr>
+    &mdash; <abbr title="2018-06-11T00:00:00-05:00">Mon 11 June 2018</abbr>
 </div>        </div>
     </div>
 
@@ -56,11 +56,163 @@
     </div>
 
     <div class="entry-content">
-        <p>The goal of this project is to create a neural translation model that translates
-text from French to English. The model will be an encoder-decoder network with
-attention, using pre-trained word&nbsp;embeddings.</p>
-<p>This project is currently in progress, updates will be added as I go. If you are
-interested in seeing the current code, please check out the projects <a href="https://github.com/macbrennan90/translation-model" target="_blank">github repository</a>.</p>
+        <h2>Overview</h2>
+<p>In this post, I walk through how to build and train an neural translation model to translate French to English. This post will focus on the conceptual explanation, while a detailed walk through of the project code can be found in the associated Jupyter notebook. This notebook can be viewed <a href="https://nbviewer.jupyter.org/github/macbrennan90/translation-model/blob/master/translation-model.ipynb" target="_blank">here</a> or cloned from the project Github repository, <a href="https://github.com/macbrennan90/translation-model" target="_blank">here</a>. This post will be divided into two parts:
+<ol>
+    <li>A Conceptual Understanding of the&nbsp;Model</li>
+    <li>A Brief Summary of How the Model&nbsp;Performed</li>
+</ol></p>
+<p>This project closely follows the <a href="https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html">PyTorch Sequence to Sequence tutorial</a>, while attempting to go more in depth with both the model implementation and the explanation. Thanks to <a href="https://github.com/spro/practical-pytorch">Sean Robertson</a> and <a href="https://pytorch.org/tutorials/">PyTorch</a> for providing such great&nbsp;tutorials.</p>
+<h2>Understanding the&nbsp;Model</h2>
+<p>We are trying to build a translation model. One model that has been successful in this task is an Encoder-Decoder network.
+At a high level, this model takes in a sequence and encodes the information of that sequence into an intermediate representation. This intermediate representation is decoded by the decoder into whatever target language the model has been trained for. In the case of this project, the input sequences are French sentences and the model has been trained to output the English translation of those&nbsp;sentences.</p>
+<p>Before we dive into the details of how the encoder and decoder work, we need to have an understanding of how our data will be represented to the model.
+Without knowing anything about how the model works, we can make the reasonable assumption that if we give the model a sentence in French, it should be able to provide us with the equivalent English sentence.
+So inputing one sequence of words should output another sequence of words. However, the model is just a collection of parameters that perform various computations on the input. The model does not know what words are.
+Similar to how letters have a <span class="caps">ASCII</span> mapping to numbers, our words need to be represented numerically. To do this, each unique word in the dataset needs a unique index. Rather than a sequence of words, the model will be given a sequence of&nbsp;indices.</p>
+<p>This works great for one sentence, but how can we pass the model multiple sentences to speed up the training process? Sentences are not all the same length. Additionally, how will these sequences of numbers be organized for the model? The answer is that the input sequences will be represented as a 2D tensor(matrix) with dimensions (batch size x max sequence length). This allows us to input a batch of sentences and sentences that have a length less than the longest sentence in the dataset can be padded using a pre-determined &#8220;padding index&#8221;. This is illustrated in the following&nbsp;figure.</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/tm-input-tensor.png?raw=true'
+     alt='Input Tensor'>
+</p>
+
+<h3>Encoder</h3>
+<h4>Word&nbsp;Embeddings</h4>
+<p>The input tensor allows us to input several sentences to the model as a sequence of indices. This is a step in the right direction, but these indices don&#8217;t hold any information. They are just place holders that represent the words. The word represented by the index 54, is not necessarily related to the word represented by the index 55. It wouldn&#8217;t make sense to use these index numbers in a calculation. These indices need to be represented in some other format that allows the model to compute something&nbsp;meaningful.</p>
+<p>One way to do this is to &#8220;one hot encode&#8221; the words, meaning each word is represented by a vector of zeros except for a one at the index associated with the word. Each index in this vector would be associated with a unique word in the vocab. This would work, but it still lacks any sort of information about how words are related. A better way to represent words is to use word&nbsp;embeddings.</p>
+<p>Word embeddings represent each word as an N-dimensional vector. In this way, similar words would have similar word embeddings and would be located near each other in the N-dimensional space.
+To determine good values for the word embeddings a model is usually trained on some language task and the word embeddings are learned. Luckily, this has already been done by other researcher and those word embeddings have been made available. In this project, the 300-dimensional word embeddings from FastText are&nbsp;used.</p>
+<p>The indices can now be replaced by the word embeddings associated with each word. This step is included into the Encoder&#8217;s calculation giving a third dimension to the input tensor representing the word embeddings. An illustration of this embedded tensor is shown in the following&nbsp;figure.</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/embedded-tensor.png?raw=true'
+     alt='Embedded Input Tensor'>
+</p>
+
+<h4>Encoder&nbsp;Architecture</h4>
+<p>As mentioned above, the embedding step is rolled into the Encoder calculation. This is done through an embedding layer. The following figure shows the full Encoder&nbsp;architecture.</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/encoder-detailed.png?raw=true'
+     alt='Encoder Network'>
+</p>
+
+<p>As shown above, once the input tensor has passed through the embedding layer, the embedded input tensor is passed to a Bi-Directional <span class="caps">RNN</span> layer. A simple Encoder-Decoder network just uses a forward directional <span class="caps">RNN</span> for the encoder. However, this requires that items at the beginning of the sequence be encoded without any information about what is contained later in the sequence. A Bi-Directional <span class="caps">RNN</span> avoids this by stepping forward through the sequence as well as backward. As the <span class="caps">RNN</span> steps backward through the sequence it has already seen the full&nbsp;sequence.</p>
+<p>Taking the embedded input tensor, the <span class="caps">RNN</span> steps through each sequence item(word) in the sequence(sentence). At each iteration, an encoding vector with a length equal to the encoder hidden size is output. This is done in parallel for each example in the batch, for that sequence item. Although all the <span class="caps">RNN</span> steps are output as one final tensor, it is useful to think of the output at each step as a matrix(batch size X encoder vector&nbsp;size).</p>
+<p>At each step through the sequence, the <span class="caps">RNN</span>&#8217;s hidden state is passed to the next iteration of the <span class="caps">RNN</span> that takes in the next sequence item. This iteration also outputs an encoding vector for each example in the batch. This &#8220;matrix&#8221; is output at each step in the sequence and as the <span class="caps">RNN</span> steps backward through the sequence the output matrix is concatenated to the matrix at the same sequence step from the forward pass along the encoded vector dimension. This process is illustrated below. For this project, the <span class="caps">RNN</span> cell used 2 layers with one dropout layer between them. Additionally, two different types of <span class="caps">RNN</span>&#8217;s were compared, <span class="caps">LSTM</span>(Long Short Term Memory) and <span class="caps">GRU</span>(Gated Recurrent Unit)&nbsp;architectures.</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/recurrent-unrolled.png?raw=true'
+     alt='Recurrent Layer Unrolled'>
+</p>
+
+<p>The final output of the <span class="caps">RNN</span> layer is a tensor where the &#8220;matrix&#8221; outputs of each recurrent step are stacked in the sequence dimension. The following figure shows this tensor in&nbsp;detail.</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/encoder-output-tensor.png?raw=true'
+     alt='Encoder Output'>
+</p>
+
+<h3>Decoder</h3>
+<p>For a simple Encoder-Decoder network the final hidden state of the Encoder is passed to another <span class="caps">RNN</span>(The Decoder). Each output from this <span class="caps">RNN</span> is a word in the output sequence, which is fed as input to the next step of the <span class="caps">RNN</span>. However, this architecture requires that the entire input sequence be encoded into the final hidden state of the Encoder. By using an attentional model, the Decoder takes the final hidden state as well as the Encoder output at each step in the input sequence. The Decoder can then weight the values of the Encoder output that are important for the calculation at each iteration in the Decoder output&nbsp;sequence.</p>
+<p>Ultimately, the recurrent layer of the Decoder will take as input, the Encoder Output weighted by the attention module, as well as the predicted word index from the previous step of the recurrent cell. The following figure gives an illustration of this process, where the &#8220;Context&#8221; represents the Encoder output tensor.(Note that the embedding layers in both models were not included in the illustration to simplify the&nbsp;figure.)</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/encoder-decoder.png?raw=true'
+     alt='Full Network'>
+</p>
+
+<p>So now let us take a closer look at how the attention module weights the Encoder&nbsp;output.</p>
+<h4>Attention</h4>
+<p>Referring back to the Encoder Output Tensor, each item in the sequence dimension holds a vector from the <span class="caps">RNN</span> output. This vector is associated with the word at that sequence step, in the input sentence. For each example in a batch, the attention module takes a weighted sum of these vectors across the sequence dimension. This produces one vector, for each example, that represents the relevant information needed for the calculation of the current output sequence&nbsp;step.</p>
+<p>To make this explanation a bit more concrete, let&#8217;s consider an example. If the first word of the input sentence was the most important piece of information for a given output word, then the weight associated with the first word would be one and all other weights would be zero. This would have the effect that the weighted vector would be equal to the vector associated with the first word from the input&nbsp;sentence.</p>
+<p>The model needs to learn how to determine these weights, so a fully connected layer is used to calculate them. There needs to be one weight per word in the sequence, so the number of nodes will equal the maximum sequence length. The weights should also sum to one, so the fully connected layer will use a softmax activation function. To determine these weights, the attention module will take as input, the concatenation of the previous hidden state of the Decoder and the word embeddings of the predicted words from the previous Decoder output step. The following figure illustrates this&nbsp;process.</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/attn-weights.png?raw=true'
+     alt='Attention Weights'>
+</p>
+
+<p>Once the weights are calculated, a matrix multiplication of the weights and the Encoder output, by batch example, will give a weighted sum of the encoded vectors across the sequence. The matrix representing the Encoder output, by batch example, can be thought of as taking a horizontal slice of the Encoder Output Tensor. By writing out this multiplication by hand, you can see that each sequence weight is multiplied by the associated encoded vector and these are summed over the whole sequence to produce a single vector. The following figure illustrates this calculation for a single example. The actual calculation stacks each example in the batch to form a matrix with dimensions (batch size x 2*Encoder Hidden Size). This produces the Weighted Encoder&nbsp;Output.</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/attn-output.png?raw=true'
+     alt='Attentional Weighted Encoder Output'>
+</p>
+
+<h4>Recurrent&nbsp;Calculation</h4>
+<p>Now that the Encoder Output has been weighted by the attention module, it is ready to be passed to the <span class="caps">RNN</span> layer of the Decoder. The <span class="caps">RNN</span> will also take in the word embeddings of the words predicted by the previous step of the Decoder. Rather than inputing the concatenation of these two matrices straight into the <span class="caps">RNN</span>, it will first pass through a fully connected layer with a ReLU activation. The output from this layer will then be the input to the <span class="caps">RNN</span>.</p>
+<p>The output from the <span class="caps">RNN</span> will go through a fully connected layer with a log softmax activation function where the number of nodes is equal to the number of words in the output language vocab. This represents the predictions for the next word in the output sequence. This word along with the hidden state of the <span class="caps">RNN</span> are passed to the next step of the attention module and <span class="caps">RNN</span>, where the next sequence item is calculated. The following figure illustrates this process. This is repeated until the entire output sequence has been&nbsp;output.</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/decoder-detailed.png?raw=true'
+     alt='Recurrent Calculation for Decoder'>
+</p>
+
+<h3>Training the&nbsp;Model</h3>
+<p>Initially, the model is not very good at predicting the output sequence. It needs to be trained. To do this a loss is calculated and the error is back propagated through the model to update the model parameters. For this model, the loss is calculated by taking the Negative Log Likelihood Loss between the output predictions and the target translation word, summing over the sequence and averaging over the batch. This process is repeated for the entire dataset and for as many epochs of the dataset as needed to obtain the desired&nbsp;results.</p>
+<p>However, training a language model is slightly more complicated. Since the Decoder depends on predictions of the previous sequence items to predict later items, an error early in the sequence would throw that whole translation off. This makes it very hard for the model to learn. The solution to this problem is a technique called teacher forcing. The idea is that for some batches(usually half the time, selected at random), instead of passing the previous prediction of the decoder to the next sequence step, the previous target is used. When teaching forcing is used, the calculation of the decoder at each step uses the correct previous word. This technique makes training the model much&nbsp;easier.</p>
+<h2>Model&nbsp;Performance</h2>
+<p>The details of building and training this model can be found in the associated Jupyter notebook, which is linked at the beginning of the post. This section will provide a brief summary of how the model&nbsp;performed.</p>
+<h3>Datasets</h3>
+<p>Two datasets were used to test the model. The initial dataset used was relatively simple. It had a smaller vocab size and the sentence structure seemed to lack diversity. It did however, have the advantage of training relatively fast while testing out the model. After training on this dataset, a second, more diverse dataset was used. Although this dataset used shorter sentences, it had a much larger vocab size, as well as a much broader sentence&nbsp;structure.</p>
+<p><strong>Simple Dataset</strong><br>
+Number of examples:&nbsp;137861</p>
+<p>Number of unique French words: 356<br>
+Number of unique English words:&nbsp;228</p>
+<p>Longest French sentence: 23 words<br>
+Longest English sentence: 17&nbsp;words</p>
+<p>Examples:</p>
+<div class="highlight"><pre><span></span>French Sentence: paris est jamais agréable en décembre , et il est relaxant au mois d&#39; août .  
+English Sentence: paris is never nice during december , and it is relaxing in august .
+
+French Sentence: elle déteste les pommes , les citrons verts et les citrons .  
+English Sentence: she dislikes apples , limes , and lemons .
+
+French Sentence: la france est généralement calme en février , mais il est généralement chaud en avril .  
+English Sentence: france is usually quiet during february , but it is usually hot in april .
+
+French Sentence: la souris était mon animal préféré moins .  
+English Sentence: the mouse was my least favorite animal .
+
+French Sentence: paris est parfois clémentes en septembre , et il gèle habituellement en août .  
+English Sentence: paris is sometimes mild during september , and it is usually freezing in august .
+</pre></div>
+
+
+<p><strong>More Diverse Dataset</strong><br>
+Number of examples:&nbsp;139692</p>
+<p>Number of unique French words: 25809<br>
+Number of unique English words:&nbsp;12603</p>
+<p>Longest French sentence: 10 words<br>
+Longest English sentence: 10&nbsp;words</p>
+<p>Examples:</p>
+<div class="highlight"><pre><span></span>French Sentence: je vais laver les plats  
+English Sentence: ill wash dishes
+
+French Sentence: les nouvelles les rendirent heureux  
+English Sentence: the news made them happy
+
+French Sentence: globalement la conférence internationale fut un succès  
+English Sentence: all in all the international conference was a success
+
+French Sentence: comment marche cet appareil photo  
+English Sentence: how do you use this camera
+
+French Sentence: cest ton jour de chance  
+English Sentence: this is your lucky day
+</pre></div>
+
+
+<h3>Loss&nbsp;Plots</h3>
+<p>Two versions of the model were built, one using an <span class="caps">LSTM</span> cell for the <span class="caps">RNN</span> and one using a <span class="caps">GRU</span> cell for the <span class="caps">RNN</span>. These two versions of the model were trained on the two datasets. Their loss plots are shown&nbsp;below.</p>
+<p>Training Plot for Dataset&nbsp;1</p>
+<p>Training Plot for Dataset&nbsp;2</p>
+<p>Plots coming tomorrow, just waiting for a final training&nbsp;run!</p>
+<h3>Example Translations and Visualizing&nbsp;Attention</h3>
+<p>Coming Soon, finalizing the&nbsp;models!!</p>
+<p>Simple Dataset<br>
+<span class="caps">LSTM</span> with attention<br>
+3&nbsp;examples</p>
+<p><span class="caps">GRU</span> with attention<br>
+3&nbsp;examples</p>
+<p>More Diverse Dataset<br>
+<span class="caps">LSTM</span> with attention<br>
+3&nbsp;examples</p>
+<p><span class="caps">GRU</span> with attention<br>
+3&nbsp;examples</p>
     </div>
 
     <footer>
