@@ -198,21 +198,149 @@ English Sentence: this is your lucky day
 
 <h3>Loss&nbsp;Plots</h3>
 <p>Two versions of the model were built, one using an <span class="caps">LSTM</span> cell for the <span class="caps">RNN</span> and one using a <span class="caps">GRU</span> cell for the <span class="caps">RNN</span>. These two versions of the model were trained on the two datasets. Their loss plots are shown&nbsp;below.</p>
-<p>Training Plot for Dataset&nbsp;1</p>
-<p>Training Plot for Dataset&nbsp;2</p>
-<p>Plots coming tomorrow, just waiting for a final training&nbsp;run!</p>
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/lossplot1.png?raw=true'
+     alt='Loss Plot: Dataset 1'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/lossplot2.png?raw=true'
+    alt='Loss Plot: Dataset 2'>
+</p>
+
 <h3>Example Translations and Visualizing&nbsp;Attention</h3>
-<p>Coming Soon, finalizing the&nbsp;models!!</p>
-<p>Simple Dataset<br>
-<span class="caps">LSTM</span> with attention<br>
-3&nbsp;examples</p>
-<p><span class="caps">GRU</span> with attention<br>
-3&nbsp;examples</p>
-<p>More Diverse Dataset<br>
-<span class="caps">LSTM</span> with attention<br>
-3&nbsp;examples</p>
-<p><span class="caps">GRU</span> with attention<br>
-3&nbsp;examples</p>
+<p><strong>Example Translations: Simple&nbsp;Dataset</strong></p>
+<p>After training the models one epoch on the dataset, both versions were very accurate at producing the correct translation. However, the models did not seem to be using the attention to translate the sequences. Below are 3 example translations and visualizations of the attentional weights at each item in the output sequence. Looking at the examples below, the attention weights are not necessarily random, but the attention is not on the words one would&nbsp;expect.</p>
+<p>Example&nbsp;1</p>
+<div class="highlight"><pre><span></span>Input Sentence:
+ californie est sec en janvier , mais il est généralement occupé en mars . <span class="nt">&lt;/s&gt;</span>
+
+Target Sentence:
+ california is dry during january , but it is usually busy in march .<span class="nt">&lt;/s&gt;</span>
+
+LSTM model output:
+ california is dry during january , but it is usually busy in march . <span class="nt">&lt;/s&gt;</span>
+
+GRU model output:
+ california is dry during january , but it is usually busy in march . <span class="nt">&lt;/s&gt;</span>
+</pre></div>
+
+
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds1_lstmattn_1.png?raw=true'
+     alt='LSTM Attention'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds1_gruattn_1.png?raw=true'
+              alt='GRU Attention'>
+</p>
+
+<p>Example&nbsp;2</p>
+<div class="highlight"><pre><span></span>Input Sentence:
+ new jersey est généralement chaud en juin , et il est parfois merveilleux en hiver . <span class="nt">&lt;/s&gt;</span>
+
+Target Sentence:
+ new jersey is usually hot during june , and it is sometimes wonderful in winter .<span class="nt">&lt;/s&gt;</span>
+
+LSTM model output:
+ new jersey is usually warm during june , and it is sometimes wonderful in winter . <span class="nt">&lt;/s&gt;</span>
+
+GRU model output:
+ new jersey is usually hot during june , and it is sometimes wonderful in winter . <span class="nt">&lt;/s&gt;</span>
+</pre></div>
+
+
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds1_lstmattn_2.png?raw=true'
+     alt='LSTM Attention'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds1_gruattn_2.png?raw=true'
+    alt='GRU Attention'>
+</p>
+
+<p>Example&nbsp;3</p>
+<div class="highlight"><pre><span></span>Input Sentence:
+<span class="nt">&lt;unk&gt;</span> les fraises , les mangues et le pamplemousse . <span class="nt">&lt;/s&gt;</span>
+
+Target Sentence:
+i like strawberries , mangoes , and grapefruit .<span class="nt">&lt;/s&gt;</span>
+
+LSTM model output:
+i like strawberries , mangoes , and grapefruit . <span class="nt">&lt;/s&gt;</span>
+
+GRU model output:
+i like strawberries , mangoes , and grapefruit . <span class="nt">&lt;/s&gt;</span>
+</pre></div>
+
+
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds1_lstmattn_3.png?raw=true'
+    alt='LSTM Attention'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds1_gruattn_3.png?raw=true'
+          alt='GRU Attention'>
+</p>
+
+<p><strong>Example Translations: More Diverse&nbsp;Dataset</strong></p>
+<p>The models were also able to correctly translate the sentences from the more diverse data. However, it took much longer to train, requiring 50 epochs of the data to get reasonable looking results. Several examples can be seen below. The attention weights for the <span class="caps">GRU</span> model begin to demonstrate that the model is using the attention mechanism. However, the <span class="caps">LSTM</span> model still does not seem to be learning or utilizing attention. This may be due to the <span class="caps">LSTM</span>&#8217;s access to the cell state which preserves long term dependencies. The attention calculation might not provide enough useful information for the model to prioritize learning better parameters for the attention&nbsp;calculation.</p>
+<p>Example&nbsp;1</p>
+<div class="highlight"><pre><span></span>Input Sentence:
+jai perdu mon intérêt pour le golf <span class="nt">&lt;/s&gt;</span>
+
+Target Sentence:
+ive lost interest in golf<span class="nt">&lt;/s&gt;</span>
+
+LSTM model output:
+i lost my interest golf <span class="nt">&lt;/s&gt;</span>
+
+GRU model output:
+ive lost interest in golf <span class="nt">&lt;/s&gt;</span>
+</pre></div>
+
+
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds2_lstmattn_1.png?raw=true'
+     alt='LSTM Attention'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds2_gruattn_1.png?raw=true'
+              alt='GRU Attention'>
+</p>
+
+<p>Example&nbsp;2</p>
+<div class="highlight"><pre><span></span>Input Sentence:
+le livre était meilleur que le film <span class="nt">&lt;/s&gt;</span>
+
+Target Sentence:
+the book was better than the movie<span class="nt">&lt;/s&gt;</span>
+
+LSTM model output:
+the book was better than the movie <span class="nt">&lt;/s&gt;</span>
+
+GRU model output:
+the book was better than the movie <span class="nt">&lt;/s&gt;</span>
+</pre></div>
+
+
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds2_lstmattn_2.png?raw=true'
+     alt='LSTM Attention'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds2_gruattn_2.png?raw=true'
+    alt='GRU Attention'>
+</p>
+
+<p>Example&nbsp;3</p>
+<div class="highlight"><pre><span></span>Input Sentence:
+ quel genre de trucs <span class="nt">&lt;unk&gt;</span> le weekend <span class="nt">&lt;/s&gt;</span>
+
+Target Sentence:
+ what sort of things do you do on weekends<span class="nt">&lt;/s&gt;</span>
+
+LSTM model output:
+ what sort of things do you do on weekends <span class="nt">&lt;/s&gt;</span>
+
+GRU model output:
+ what sort of stuff do you do on weekends <span class="nt">&lt;/s&gt;</span>
+</pre></div>
+
+
+<p style='text-align: center !important;'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds2_lstmattn_3.png?raw=true'
+    alt='LSTM Attention'>
+<img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds2_gruattn_3.png?raw=true'
+          alt='GRU Attention'>
+</p>
     </div>
 
     <footer>
