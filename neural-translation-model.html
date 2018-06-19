@@ -79,15 +79,16 @@ Similar to how letters have a <span class="caps">ASCII</span> mapping to numbers
 <h3>Encoder</h3>
 <h4>Word&nbsp;Embeddings</h4>
 <p>The input tensor allows us to input several sentences to the model as a sequence of indices. This is a step in the right direction, but these indices don&#8217;t hold any information. They are just place holders that represent the words. The word represented by the index 54, is not necessarily related to the word represented by the index 55. It wouldn&#8217;t make sense to use these index numbers in a calculation. These indices need to be represented in some other format that allows the model to compute something&nbsp;meaningful.</p>
-<p>One way to do this is to &#8220;one hot encode&#8221; the words, meaning each word is represented by a vector of zeros except for a one at the index associated with the word. Each index in this vector would be associated with a unique word in the vocab. This would work, but it still lacks any sort of information about how words are related. A better way to represent words is to use word&nbsp;embeddings.</p>
+<p>One way to do this is to &#8220;one hot encode&#8221; the words, meaning each word is represented by a vector of zeros except for a one at the index associated with the word. Each index in this vector would be associated with a unique word in the vocabulary. This would work, but it still lacks any sort of information about how words are related. A better way to represent words is to use word&nbsp;embeddings.</p>
 <p>Word embeddings represent each word as an N-dimensional vector. In this way, similar words would have similar word embeddings and would be located near each other in the N-dimensional space.
-To determine good values for the word embeddings a model is usually trained on some language task and the word embeddings are learned. Luckily, this has already been done by other researcher and those word embeddings have been made available. In this project, the 300-dimensional word embeddings from FastText are&nbsp;used.</p>
+To determine good values for the word embeddings, a model with random word embeddings is trained on some language task. Luckily, this has already been done by other researchers and those word embeddings have been made available. In this project, the 300-dimensional word embeddings from FastText are&nbsp;used.</p>
 <p>The indices can now be replaced by the word embeddings associated with each word. This step is included into the Encoder&#8217;s calculation giving a third dimension to the input tensor representing the word embeddings. An illustration of this embedded tensor is shown in the following&nbsp;figure.</p>
 <p style='text-align: center !important;'>
 <img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/embedded-tensor.png?raw=true'
      alt='Embedded Input Tensor'>
 </p>
 
+<p>With the input sentence represented as a sequence of word embeddings and organized into a tensor, it is ready to be feed into the recurrent layer of the&nbsp;Encoder.</p>
 <h4>Encoder&nbsp;Architecture</h4>
 <p>As mentioned above, the embedding step is rolled into the Encoder calculation. This is done through an embedding layer. The following figure shows the full Encoder&nbsp;architecture.</p>
 <p style='text-align: center !important;'>
@@ -341,6 +342,11 @@ GRU model output:
 <img src='https://github.com/macbrennan90/macbrennan90.github.io/blob/master/images/ds2_gruattn_3.png?raw=true'
           alt='GRU Attention'>
 </p>
+
+<h2>Summary</h2>
+<p>This model architecture was able to successfully translate the two datasets tested. The <span class="caps">GRU</span> model demonstrated that the attention calculation allowed the model to focus on different portions of the encoded sequence. However, it is unclear why the <span class="caps">LSTM</span> model appeared to either not make use of the attention information, or use the information in a different way than the <span class="caps">GRU</span> model. Given more time, it would have been interesting to investigate why this effect was being observed. Would the effect still be present if a dataset with longer sequences were used? It would also be interesting to compare the model to a simple encoder-decoder network without attention and see what situations the attention model would outperform the simple model, if at&nbsp;all.</p>
+<p>The architecture chosen also differed slightly from the methods in the Pytorch tutorial this project followed. The model used for this project allowed for batching of the examples, while the model in the original tutorial was built to process one sequence at a time. Because of this, the original model did not have to deal with padding the output. One would assume that batching would improve training time, by parallelizing the training cycle. However, the claimed training time for the orignial model was about 40 minutes on a <span class="caps">CPU</span>, while it took the model used in this project close to 12 hours training on <span class="caps">GPU</span> to get good&nbsp;translations.</p>
+<p>There are several improvements that might address this discrepency. First, PyTorch has a built in function to deal with padded sequences so that the recurrent cell doesn&#8217;t see the padded items. It is possible that this would improve the models ability to learn. Secondly, the second dataset was not tokenized. Puncutation was just removed, which may have caused some of the words to be unrecognizable when converting the words to indices. This would mean they were replaced with the unknown token, making it harder for the model to identify the content of the sentence. Even though there is room for improvement, overall the project was a succes as the model was able to successfully translate French to&nbsp;English.</p>
     </div>
 
     <footer>

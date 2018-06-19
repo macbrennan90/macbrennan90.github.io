@@ -118,16 +118,17 @@ Below is an example of this&nbsp;augmentation.</p>
 <h2>Building the&nbsp;Model</h2>
 <p>The architecture used for this model was loosely based on the <span class="caps">VGG16</span> model, a convolutional neural network built for classifying on ImageNet. The <span class="caps">VGG16</span> model uses
 5 convolutional blocks to extract features from an image. These blocks consist of several convolutional layers followed by a max pooling layer, where the image
-dimensions are reduced in half. In the model used for this project each convolutional block only has one convolutional layer. There reasoning for this is that with the
+dimensions are reduced in half. In the model used for this project each convolutional block only has one convolutional layer. The reasoning for this is that with the
 limited amount of data, a simpler model was less likely to over&nbsp;fit.</p>
 <p>In addition to using fewer convolutional layers, dropout layers were added to the first 3 convolutional blocks
- with a dropout rate of 20% and batch normalization layers were added after each convolutional layer. Both of these newer techniques were absent from the original <span class="caps">VGG16</span> network and help
- prevent over&nbsp;fitting.</p>
+with a dropout rate of 20% and batch normalization layers were added after each convolutional layer. Both of these newer techniques were absent from the original <span class="caps">VGG16</span> network and help
+prevent over&nbsp;fitting.</p>
 <p>Using this architecture to extract the image features, the output of the convolutional layers was fed to a Global Average Pooling layer and then to a fully connected output layer of 30 nodes(x,y values for each of 15 key points). The following figure illustrates the full architecture of the&nbsp;model.</p>
-<p><p style='text-align: center !important;'>
- <img src='https://raw.githubusercontent.com/macbrennan90/macbrennan90.github.io/master/images/face-model-summary.png'
-      alt='Model Summary'>
- </p></p>
+<p style='text-align: center !important;'>
+<img src='https://raw.githubusercontent.com/macbrennan90/macbrennan90.github.io/master/images/face-model-summary.png'
+    alt='Model Summary'>
+</p>
+
 <h2>Training</h2>
 <p>To train the model, the loss was calculated using the mean squared error of the labeled key points and the predicted key points. It was found that the Adam optimizer provided the best results. It was also found that the lowest loss was achieved by progressing the batch size and learning rate. Starting with a learning rate of 0.001, the model was trained for 15 epochs on
 32, 64, and 128 batch sizes. This was repeated for learning rates of 0.0001 and 0.00001. The reasoning being that with a lower batch size the gradient descent step is more stochastic(more random)
@@ -142,9 +143,9 @@ As you can see in the final epochs, the steps in the training loss are produced 
 </p>
 
 <h3>Pseudo&nbsp;Labeling</h3>
-<p>After the first round of training the model is relatively accurate. To make use of all the data in the original dataset, the trained model was used to predict key points
+<p>After the first round of training, the model is relatively accurate. To make use of all the data in the original dataset, the trained model was used to predict key points
 for the missing values and use those as labels. Essentially, the dataset had a large amount of incomplete examples that were thrown away, yet they still had useful information
-from the key points that they did have. In order to learn from that information, the model filled in the incomplete points with its&#8217; best&nbsp;guess.</p>
+from the key points. In order to learn from that information, the model filled in the incomplete points with a best&nbsp;guess.</p>
 <p>Taking the pseudo-labeled full dataset and augmenting it as before, a new training dataset was created with 29520 examples. The model then continued training on this data set and was followed by another cycle of training on the original fully-labeled dataset. Ultimately, the model error was trained below 0.0005. I was pretty happy with this as the project notebook stated, &#8220;A very good model will achieve about 0.0015 loss&#8221;. Furthermore, when plotted on test images, the key point predictions appeared to be placed where you would&nbsp;expect.</p>
 <h2>Summary</h2>
 <p>With the key point detection model trained, the face detector and the model were combined to apply key points to faces within an image. The following figure
